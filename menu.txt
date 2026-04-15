@@ -1,0 +1,57 @@
+Restaurant Name: Foodies Hub
+
+=== MENU ===
+
+Starters:
+- Classic Fries: $3
+- Garlic Bread: $4
+- Mozzarella Sticks: $5
+- Onion Rings: $4
+
+Main Course:
+- Classic Beef Burger: $5
+- Cheese Burger: $6
+- Chicken Burger: $6
+- Margherita Pizza: $8
+- Pepperoni Pizza: $9
+- BBQ Chicken Pizza: $10
+- Spaghetti Bolognese: $7
+- Alfredo Pasta: $8
+- Grilled Chicken Wrap: $7
+
+Beverages:
+- Soft Drink (Coke, Sprite, Fanta): $2
+- Fresh Juice (Orange, Mango, Apple): $4
+- Iced Tea: $3
+- Coffee (Latte, Cappuccino, Americano): $4
+- Milkshake (Chocolate, Vanilla, Strawberry): $5
+
+Desserts:
+- Chocolate Brownie: $5
+- Cheesecake Slice: $6
+- Ice Cream Sundae: $5
+- Tiramisu: $7
+
+=== HOURS ===
+Monday - Sunday: 10:00 AM - 11:00 PM
+
+=== LOCATION ===
+123 Main Street, Downtown
+Phone: (555) 123-4567
+
+=== RESERVATION RULES ===
+- Reservations accepted for parties of 1-20 people
+- To make a reservation we need: your name, preferred date, preferred time, and number of guests
+- Reservations can be made for any day within the next 30 days
+- For parties larger than 10, a deposit may be required
+- Cancellations must be made at least 2 hours in advance
+
+=== DELIVERY ===
+- Free delivery within 5 miles for orders over $20
+- $3 delivery fee for orders under $20
+- Estimated delivery time: 30-45 minutes
+
+=== SPECIAL OFFERS ===
+- Family Combo: 2 Burgers + 1 Pizza + 2 Drinks = $18 (Save $4!)
+- Lunch Special (11 AM - 2 PM): Any Main + Drink = 10% off
+- Happy Hour (4 PM - 6 PM): All beverages 50% off
