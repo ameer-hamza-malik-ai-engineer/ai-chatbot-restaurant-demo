@@ -7,6 +7,7 @@ load_dotenv()  # loads .env locally; no-op on Streamlit Cloud
 
 # --- Configuration ---
 MODEL = "openai/gpt-oss-120b"
+MENU_FILE = Path(__file__).parent / "menu.txt"
 
 
 def _get_api_key() -> str:
@@ -19,7 +20,6 @@ def _get_api_key() -> str:
         except Exception:
             pass
     return key
-MENU_FILE = Path(__file__).parent / "menu.txt"
 
 # --- Load knowledge base ---
 def load_context() -> str:
@@ -55,6 +55,7 @@ BEHAVIOR RULES:
 def get_client() -> InferenceClient:
     """Create and return an InferenceClient pointed at HuggingFace."""
     api_key = _get_api_key()
+    # print(api_key)
     if not api_key:
         raise ValueError(
             "HF_API_KEY is not set. Add it to your .env file or Streamlit secrets."

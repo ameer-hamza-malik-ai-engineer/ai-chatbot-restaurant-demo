@@ -37,21 +37,21 @@ st.markdown("""
         margin: 0.8rem auto 1.2rem auto;
     }
 
-    /* Badge pills */
-    .badge-row {
-        display: flex;
-        justify-content: center;
-        gap: 0.6rem;
-        flex-wrap: wrap;
-        margin-bottom: 1.5rem;
+    /* Header action buttons (scoped to main content area) */
+    .main div[data-testid="column"] .stButton > button {
+        border-radius: 999px !important;
+        font-size: 0.82rem !important;
+        padding: 0.3rem 0.6rem !important;
+        border: 1px solid #3a3a4a !important;
+        background: #262730 !important;
+        color: #fafafa !important;
+        width: 100%;
+        transition: background 0.2s, border-color 0.2s;
     }
-    .badge {
-        background: #262730;
-        color: #fafafa;
-        padding: 0.3rem 0.85rem;
-        border-radius: 999px;
-        font-size: 0.82rem;
-        border: 1px solid #3a3a4a;
+    .main div[data-testid="column"] .stButton > button:hover {
+        background: #ff4b4b !important;
+        border-color: #ff4b4b !important;
+        color: #fff !important;
     }
 
     /* Chat message tweaks */
@@ -68,24 +68,38 @@ st.markdown("""
     <p class="header-subtitle">24/7 automated customer support for <strong>Foodies Hub</strong></p>
     <hr class="header-divider">
 </div>
-<div class="badge-row">
-    <span class="badge">📋 Menu & Prices</span>
-    <span class="badge">🛒 Order Food</span>
-    <span class="badge">📅 Reservations</span>
-    <span class="badge">⏰ Hours & Location</span>
-</div>
 """, unsafe_allow_html=True)
+
+# --- Header quick-action buttons ---
+_hcol1, _hcol2, _hcol3, _hcol4 = st.columns(4)
+with _hcol1:
+    if st.button("📋 Menu & Prices", use_container_width=True):
+        st.session_state.pending_input = "Show me the entire menu items"
+        st.rerun()
+with _hcol2:
+    if st.button("🛒 Order Food", use_container_width=True):
+        st.session_state.pending_input = "I'd like to place a food order."
+        st.rerun()
+with _hcol3:
+    if st.button("📅 Reservations", use_container_width=True):
+        st.session_state.pending_input = "Make a reservation for me."
+        st.rerun()
+with _hcol4:
+    if st.button("⏰ Hours & Location", use_container_width=True):
+        st.session_state.pending_input = "What are your opening hours and location?"
+        st.rerun()
 
 # --- Session state init ---
 if "messages" not in st.session_state:
-    st.session_state.messages = []
     # Welcome message from assistant
     welcome = (
         "Hey there! 👋 Welcome to **Foodies Hub**! "
         "I'm Foodie, your virtual assistant. I can help you with our menu, "
         "take your order, or book a table. What can I do for you today?"
     )
-    st.session_state.messages.append({"role": "assistant", "content": welcome})
+    st.session_state.messages = [{"role": "assistant", "content": welcome}]
+if "pending_input" not in st.session_state:
+    st.session_state.pending_input = None
 
 # --- Render chat history ---
 for msg in st.session_state.messages:
@@ -93,17 +107,20 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar=avatar):
         st.markdown(msg["content"])
 
-# --- Chat input ---
-if user_input := st.chat_input("Type your message here..."):
+# --- Resolve pending input from quick-action buttons ---
+typed_input = st.chat_input("Type your message here...")
+user_input = typed_input or st.session_state.pop("pending_input", None)
+
+if user_input:
     # Show user message
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user", avatar="👤"):
         st.markdown(user_input)
 
-    # Build history for bot (exclude the welcome message for cleaner context)
+    # Build history for bot (all messages except the one just appended)
     history = [
         {"role": m["role"], "content": m["content"]}
-        for m in st.session_state.messages[:-1]  # exclude current user msg
+        for m in st.session_state.messages[:-1]
     ]
 
     # Get bot response
@@ -128,11 +145,11 @@ with st.sidebar:
     col1, col2 = st.columns(2)
     with col1:
         if st.button("📋 See Menu", use_container_width=True):
-            st.session_state.messages.append({"role": "user", "content": "Show me the full menu"})
+            st.session_state.pending_input = "Show me the entire menu items"
             st.rerun()
     with col2:
         if st.button("📅 Reserve", use_container_width=True):
-            st.session_state.messages.append({"role": "user", "content": "I'd like to make a reservation"})
+            st.session_state.pending_input = "Make a reservation for me."
             st.rerun()
 
     st.markdown("---")
