@@ -1,5 +1,9 @@
 import streamlit as st
-from chatbot import ask_bot
+from chatbot import ask_bot, extract_confirmed_action
+from database import init_db, save_order, save_reservation, get_orders, get_reservations
+
+# Ensure DB tables exist (runs once per process)
+init_db()
 
 # --- Page configuration ---
 st.set_page_config(
@@ -100,6 +104,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": welcome}]
 if "pending_input" not in st.session_state:
     st.session_state.pending_input = None
+if "processed_confirmations" not in st.session_state:
+    st.session_state.processed_confirmations = []
 
 # --- Render chat history ---
 for msg in st.session_state.messages:
@@ -131,6 +137,31 @@ if user_input:
 
     st.session_state.messages.append({"role": "assistant", "content": reply})
 
+    # --- Detect and persist confirmed orders / reservations ---
+    last_idx = len(st.session_state.messages) - 1
+    if last_idx not in st.session_state.processed_confirmations:
+        action = extract_confirmed_action(st.session_state.messages)
+        if action:
+            try:
+                if action.get("type") == "order":
+                    oid = save_order(
+                        action.get("customer_name", "Guest"),
+                        action.get("items", []),
+                        action.get("total", ""),
+                    )
+                    st.toast(f"✅ Order #{oid} saved to database!", icon="🛒")
+                elif action.get("type") == "reservation":
+                    rid = save_reservation(
+                        action.get("customer_name", "Guest"),
+                        action.get("date", ""),
+                        action.get("time", ""),
+                        action.get("guests", 1),
+                    )
+                    st.toast(f"✅ Reservation #{rid} saved to database!", icon="📅")
+            except Exception as db_err:
+                st.toast(f"⚠️ Could not save to database: {db_err}", icon="⚠️")
+        st.session_state.processed_confirmations.append(last_idx)
+
 # --- Sidebar ---
 with st.sidebar:
     st.markdown("### 🍔 Foodies Hub")
@@ -156,6 +187,36 @@ with st.sidebar:
     if st.button("🗑️ Clear Chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
+
+    # --- Recent Orders ---
+    st.markdown("---")
+    with st.expander("🛒 Recent Orders", expanded=False):
+        orders = get_orders(limit=10)
+        if orders:
+            for o in orders:
+                items_str = ", ".join(o["items"]) if isinstance(o["items"], list) else o["items"]
+                st.markdown(
+                    f"**#{o['id']} — {o['customer_name']}**  \n"
+                    f"{items_str}  \n"
+                    f"Total: {o['total'] or 'N/A'} · {o['placed_at'][:16].replace('T', ' ')}"
+                )
+                st.divider()
+        else:
+            st.caption("No orders yet.")
+
+    # --- Recent Reservations ---
+    with st.expander("📅 Recent Reservations", expanded=False):
+        reservations = get_reservations(limit=10)
+        if reservations:
+            for r in reservations:
+                st.markdown(
+                    f"**#{r['id']} — {r['customer_name']}**  \n"
+                    f"{r['date']} at {r['time']} · {r['guests']} guest(s)  \n"
+                    f"Booked: {r['placed_at'][:16].replace('T', ' ')}"
+                )
+                st.divider()
+        else:
+            st.caption("No reservations yet.")
 
     st.markdown(
         "<div style='text-align:center; color:#666; font-size:0.75rem; margin-top:2rem;'>"

@@ -1,4 +1,6 @@
 import os
+import re
+import json
 from pathlib import Path
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
@@ -98,4 +100,55 @@ def ask_bot(user_input: str, chat_history: list[dict]) -> str:
         return f"⚠️ Configuration error: {exc}"
     except Exception as exc:
         return f"⚠️ API error ({type(exc).__name__}): {exc}"
+
+
+_EXTRACTION_PROMPT = """\
+You are a data extractor. Analyse the conversation below.
+
+Has the LAST assistant message just CONFIRMED a completed order OR a completed reservation?
+
+- A confirmation means the assistant explicitly told the customer their order or reservation is confirmed/placed/booked, not merely collected info.
+
+If the last assistant message confirms an ORDER reply with ONLY this JSON (no markdown, no extra text):
+{"type": "order", "customer_name": "...", "items": ["item1 x2", "item2 x1"], "total": "$X.XX"}
+
+If the last assistant message confirms a RESERVATION reply with ONLY this JSON (no markdown, no extra text):
+{"type": "reservation", "customer_name": "...", "date": "YYYY-MM-DD or descriptive date", "time": "HH:MM or descriptive time", "guests": N}
+
+If neither case applies, reply with ONLY the word: null
+"""
+
+
+def extract_confirmed_action(chat_history: list[dict]) -> dict | None:
+    """Detect whether the last assistant turn confirmed an order or reservation.
+
+    Args:
+        chat_history: Full conversation including the latest assistant reply.
+
+    Returns:
+        Parsed dict with 'type' key ('order' or 'reservation') and relevant fields,
+        or None if no confirmation was detected.
+    """
+    messages = [{"role": "system", "content": _EXTRACTION_PROMPT}]
+    messages.extend(chat_history)
+
+    try:
+        client = get_client()
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+            max_tokens=200,
+            temperature=0,
+        )
+        raw = (response.choices[0].message.content or "").strip()
+        if not raw or raw.lower() == "null":
+            return None
+        # Strip accidental markdown code fences
+        raw = re.sub(r"^```[a-z]*\n?|```$", "", raw, flags=re.MULTILINE).strip()
+        data = json.loads(raw)
+        if isinstance(data, dict) and data.get("type") in ("order", "reservation"):
+            return data
+    except Exception:
+        pass
+    return None
         
