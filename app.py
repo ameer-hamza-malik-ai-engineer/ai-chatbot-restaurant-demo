@@ -160,6 +160,7 @@ if user_input:
                     st.toast(f"✅ Reservation #{rid} saved to database!", icon="📅")
             except Exception as db_err:
                 st.toast(f"⚠️ Could not save to database: {db_err}", icon="⚠️")
+                st.error(f"Database error: {db_err}")
         st.session_state.processed_confirmations.append(last_idx)
 
 # --- Sidebar ---
