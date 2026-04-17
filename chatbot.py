@@ -4,25 +4,14 @@ import json
 from pathlib import Path
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()  # loads .env locally; no-op on Streamlit Cloud
 
 # --- Configuration ---
 MODEL = "openai/gpt-oss-120b"
 MENU_FILE = Path(__file__).parent / "menu.txt"
-
-
-class Query:
-    def __init__(self, query):
-        self.new_query = query
-
-    def get_query(self):
-        return self.new_query
-    
-    def set_query(self, query):
-        self.new_query = query
-
-new_query = Query("")
+TODAY = datetime.now().strftime("%Y-%m-%d")
 
 
 def _get_api_key() -> str:
@@ -118,21 +107,13 @@ def ask_bot(user_input: str, chat_history: list[dict]) -> str:
     Returns:
         The assistant's response text.
     """
-    # global new_query
-    # new_query.set_query(user_input)
 
     if not user_input or not user_input.strip():
         return "It looks like you didn't type anything. How can I help you today?"
 
-    # if chat_history is not None:
-    #     new_query.set_query(query_with_history(user_input, chat_history))
-
-    # Build messages array
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     messages.extend(chat_history)
     messages.append({"role": "user", "content": user_input})
-    # print("New query: ", new_query.get_query())
-    # messages.append({"role": "user", "content": new_query.get_query()})
 
     try:
         client = get_client()
@@ -148,23 +129,6 @@ def ask_bot(user_input: str, chat_history: list[dict]) -> str:
         return f"⚠️ Configuration error: {exc}"
     except Exception as exc:
         return f"⚠️ API error ({type(exc).__name__}): {exc}"
-
-
-# _EXTRACTION_PROMPT = """\
-# You are a data extractor. Analyse the conversation below.
-
-# Has the LAST assistant message just CONFIRMED a completed order OR a completed reservation?
-
-# - A confirmation means the assistant explicitly told the customer their order or reservation is confirmed/placed/booked, not merely collected info.
-
-# If the last assistant message confirms an ORDER reply with ONLY this JSON (no markdown, no extra text):
-# {"type": "order", "customer_name": "...", "items": ["item1 x2", "item2 x1"], "total": "$X.XX"}
-
-# If the last assistant message confirms a RESERVATION reply with ONLY this JSON (no markdown, no extra text):
-# {"type": "reservation", "customer_name": "...", "date": "YYYY-MM-DD or descriptive date", "time": "HH:MM or descriptive time", "guests": N}
-
-# If neither case applies, reply with ONLY the word: null
-# """
 
 _EXTRACTION_PROMPT = """\
     You are a strict JSON extractor.
@@ -188,6 +152,12 @@ Return ONLY valid JSON or null. No explanation.
 
 The JSON must be complete, properly closed, and parseable.
 Do not stop mid-generation.
+
+- The "date" field MUST be in ISO format: YYYY-MM-DD
+- Convert any natural language dates (e.g., "May 1st", "tomorrow", "next Friday") into YYYY-MM-DD
+- Do not output dates like "May 1st" or "1 May"
+- If the exact date cannot be determined, return null
+
 """
 
 
@@ -201,7 +171,7 @@ def extract_confirmed_action(chat_history: list[dict]) -> dict | None:
         Parsed dict with 'type' key ('order' or 'reservation') and relevant fields,
         or None if no confirmation was detected.
     """
-    messages = [{"role": "system", "content": _EXTRACTION_PROMPT}]
+    messages = [{"role": "system", "content": f"{_EXTRACTION_PROMPT}\n\nToday's date is: {TODAY}"}]
     messages.extend(chat_history)
 
     try:
